@@ -9,7 +9,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ConsoleApplication2
+namespace InstanceLastday16To9
 {
 	using System.Data.Linq;
 	using System.Data.Linq.Mapping;
@@ -36,7 +36,7 @@ namespace ConsoleApplication2
     #endregion
 		
 		public BbhomeDataContext() : 
-				base(global::ConsoleApplication2.Properties.Settings.Default.bbHomeConnectionString, mappingSource)
+				base(global::InstanceLastday16To9.Properties.Settings.Default.bbHomeConnectionString, mappingSource)
 		{
 			OnCreated();
 		}

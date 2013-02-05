@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace ConsoleApplication2
+namespace InstanceLastday16To9
 {
 
     /// <summary>

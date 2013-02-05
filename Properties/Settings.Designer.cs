@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ConsoleApplication2.Properties {
+namespace InstanceLastday16To9.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
