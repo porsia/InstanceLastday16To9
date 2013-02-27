@@ -43,7 +43,7 @@ namespace InstanceLastday16To9
                          break;
                      }
 
-                     string url = "http://click.muyingzhijia.com/index.php?module=API&filter_limit=100&method=Live.getLastVisitsDetails&format=json&idSite=1&period=day&date=" + dtStr + "&expanded=1&token_auth=453170c79e8f0ad5dcd1f0b2ce1ecf23";
+                     string url = "http://click.muyingzhijia.com/index.php?module=API&filter_limit=50&method=Live.getLastVisitsDetails&format=json&idSite=1&period=day&date=" + dtStr + "&expanded=1&token_auth=453170c79e8f0ad5dcd1f0b2ce1ecf23";
 
                      if (maxVisitID > 0)
                          url = url + "&maxIdVisit=" + maxVisitID;
@@ -180,7 +180,7 @@ namespace InstanceLastday16To9
             CreateReport(userList);
             writeLog( writeFile,userList);
             Console.WriteLine("数据生成完毕");
-            Console.ReadLine();
+         //   Console.ReadLine();
         }
 
    
@@ -256,7 +256,7 @@ namespace InstanceLastday16To9
                 string head = " <H3>" + cateNames[i] + "</H3><table border = 1>   <tr>     <th> 会员号 </th> <th>手机号  </th><th> 浏览商品 </th>  <th> 浏览时间</th></tr>";
                 foreach (UserVisitInfo a in u.Where(c => c.Catename == cateNames[i]))
                 {
-                    head += ("<tr><td>" + a.Userid + "</td><td>" + a.Mobile + "</td><td>" + a.Url + "</td><td>" + a.LastVisitTime + "</td><td></tr>");//开始写入值
+                    head += ("<tr><td>" + a.Userid + "</td><td>" + a.Mobile + "</td><td>" + a.Url.Replace("'","") + "</td><td>" + a.LastVisitTime + "</td><td></tr>");//开始写入值
 
                 }
 
