@@ -285,7 +285,8 @@ namespace InstanceLastday16To9
 
                 foreach (UserVisitInfo a in u)
                 {
-                    wr.WriteLine(a.Userid + "," + a.Guid + "," + a.Url + "," + a.ReferrerType + "," + a.ReferrerUrl + "," + a.LastVisitTime);//开始写入值
+                    wr.WriteLine(a.Userid + "," + a.Mobile + "," + a.Url + "," + a.LastVisitTime + ","+a.Catename);//开始写入值
+                    //   wr.WriteLine(a.Userid + "," + a.Guid + "," + a.Url + "," + a.ReferrerType + "," + a.ReferrerUrl + "," + a.LastVisitTime);//开始写入值
                 }
                 wr.Flush();
 
