@@ -6,7 +6,7 @@ using System.Text.RegularExpressions;
 using System.IO;
 using System.Web;
 using System.Net;
-
+using System.Net.Mail;
 
 
 using Boodoll.PageBL;
@@ -20,8 +20,15 @@ namespace InstanceLastday16To9
     {
 
         public static  List<ob_v_visitreport> allProductName = getAllProductIDName();
+        public static int intent = 50;
+
         static void Main(string[] args)
         {
+            //List<string> sendto1 = System.Configuration.ConfigurationSettings.AppSettings["sendto1"].ToString().Split(';').ToList();
+            //SendMail(sendto1, "前一天16:00 到今天9:00数据报表click.muyingzhijia.com",DateTime.Now.ToString());
+
+
+            //return;
            List<UserVisitInfo> userList = new List<UserVisitInfo>();
            string writeFile = string.Format("{0}\\result{1}.txt", System.Threading.Thread.GetDomain().BaseDirectory, DateTime.Now.ToFileTimeUtc().ToString());
             //数据读取完毕退出
@@ -32,18 +39,20 @@ namespace InstanceLastday16To9
                  Int64 maxVisitID = 0;
                  string dtStr = DateTime.Now.AddDays(mi).ToShortDateString();
 
-                 bool exitFlag = false;
+                 int exitFlag = 0;
                  for (int run = 0; run < int.MaxValue; run++)
                  {
                      #region 循环读取数据
 
-                     if (exitFlag)
+                     if (exitFlag>5)
                      {
-                         exitFlag = false;
+                         exitFlag = 0;
                          break;
                      }
+                     int filter_limit = intent * (run + 1);
+                     int filter_offset = intent * run;
 
-                     string url = "http://click.muyingzhijia.com/index.php?module=API&filter_limit=50&method=Live.getLastVisitsDetails&format=json&idSite=1&period=day&date=" + dtStr + "&expanded=1&token_auth=453170c79e8f0ad5dcd1f0b2ce1ecf23";
+                     string url = string.Format("http://10.0.0.131:920/index.php?module=API&filter_limit={0}&filter_offset={1}&method=Live.getLastVisitsDetails&format=json&idSite=1&period=day&date={2}&expanded=1&token_auth=453170c79e8f0ad5dcd1f0b2ce1ecf23", filter_limit,filter_offset,dtStr);
 
                      if (maxVisitID > 0)
                          url = url + "&maxIdVisit=" + maxVisitID;
@@ -76,7 +85,7 @@ namespace InstanceLastday16To9
                                  }
                                  else if(Convert.ToDateTime(lastActionDateTime) < DateTime.Parse(DateTime.Now.ToShortDateString()))
                                  {
-                                     exitFlag = true;
+                                     exitFlag ++;
                                      continue;
                                  }
                                        
@@ -86,7 +95,7 @@ namespace InstanceLastday16To9
                              {
                                  if (Convert.ToDateTime(lastActionDateTime) < DateTime.Parse(DateTime.Now.AddDays(-1).ToShortDateString()).AddHours(16))
                                  {
-                                     exitFlag = true;
+                                     exitFlag++;
                                      continue;
 
                                  }
@@ -246,33 +255,97 @@ namespace InstanceLastday16To9
         }
 
 
-        public static void CreateReport(List<UserVisitInfo> u)
+        public static void CreateReport(List<UserVisitInfo> au)
         {
-            string body = "<html><body><H3>前一天16:00 到今天9:00数据报表click.muyingzhijia.com</H3>";
+      
+            List<UserVisitInfo> u1 = au.Where(c => c.Catename == "合生元").ToList();
+            List<UserVisitInfo> u2 = au.Where(c=>!u1.Any(u=>u.Userid==c.Userid)).ToList();
+       
+        
+            List<string> sendto1 = System.Configuration.ConfigurationSettings.AppSettings["sendto1"].ToString().Split(';').ToList();
 
+            List<string> sendto2 = System.Configuration.ConfigurationSettings.AppSettings["sendto2"].ToString().Split(';').ToList();
+
+             SendMail(sendto1, "前一天16:00 到今天9:00数据报表click.muyingzhijia.com", createBody(u1));
+             SendMail(sendto2, "前一天16:00 到今天9:00数据报表click.muyingzhijia.com", createBody(u2));
+            //EmailServiceClient esc = new EmailServiceClient();
+            //esc.Open();
+            //esc.SendCmail(new WCFService.WcfMail() { Body = body, Subject = "前一天16:00 到今天9:00数据报表click.muyingzhijia.com", MailTo = ("yxw1309@muyingzhijia.com;wm1240@muyingzhijia.com; ws632@muyingzhijia.com; sd211@muyingzhijia.com;porsia@muyingzhijia.com;yxd1279@muyingzhijia.com;wh971@muyingzhijia.com;lyq942@muyingzhijia.com; cfzmp@163.com".Split(new char[] { ',', ';' })), IsHtml = true });
+            //esc.Close();
+
+
+        }
+
+        public static string createBody(List<UserVisitInfo> u)
+        {
+            string bd = "<html><body><H3>前一天16:00 到今天9:00数据报表click.muyingzhijia.com</H3>";
             List<string> cateNames = u.Select(c => c.Catename).Distinct().ToList();
             for (int i = 0; i < cateNames.Count; i++)
             {
                 string head = " <H3>" + cateNames[i] + "</H3><table border = 1>   <tr>     <th> 会员号 </th> <th>手机号  </th><th> 浏览商品 </th>  <th> 浏览时间</th></tr>";
                 foreach (UserVisitInfo a in u.Where(c => c.Catename == cateNames[i]))
                 {
-                    head += ("<tr><td>" + a.Userid + "</td><td>" + a.Mobile + "</td><td>" + a.Url.Replace("'","") + "</td><td>" + a.LastVisitTime + "</td><td></tr>");//开始写入值
+                    head += ("<tr><td>" + a.Userid + "</td><td>" + a.Mobile + "</td><td>" + a.Url.Replace("'", "") + "</td><td>" + a.LastVisitTime + "</td><td></tr>");//开始写入值
 
                 }
-
                 head += "</table>";
-                body += head;
+                bd += head;
             }
-            body += "</body></html>";
+            bd += "</body></html>";
+
+            return bd;
+        }
+
+        /// <summary>
+        /// 发送邮件，邮件内容大小无限制，比较灵活，但有可能被163、sin等邮箱屏蔽掉
+        /// </summary>
+        /// <param name="lstMail">邮件体，可多个</param>
+        /// <param name="sendAddress">发送人</param>
+        /// <param name="sendPwd">邮件标题</param>
+        /// <param name="name">名称</param>
+        /// <param name="msg">异常信息</param>
+        /// <returns></returns>
+        public static bool SendMail(List<string> lstMail, string subject, string body)
+        {
+
+            // <add key="sendMail" value="mybaby@muyingzhijia.com,mybaby,mybb@)!),222.66.166.253" />
+            string sendAddress = "mybaby@muyingzhijia.com";
+            string sendPwd = "mybb@)!)";
+            string name = "母婴之家";
+            try
+            {
+                SmtpClient smtp = new SmtpClient();
+                smtp.Host = "mail.muyingzhijia.com";
+                smtp.DeliveryMethod = SmtpDeliveryMethod.Network;
+                smtp.Credentials = new NetworkCredential(sendAddress, sendPwd);
 
 
+                MailMessage mail = new MailMessage();
+                mail.From = new MailAddress(sendAddress, name);
 
-            EmailServiceClient esc = new EmailServiceClient();
-            esc.Open();
-            esc.SendCmail(new WCFService.WcfMail() { Body = body, Subject = "前一天16:00 到今天9:00数据报表click.muyingzhijia.com", MailTo = ("yxw1309@muyingzhijia.com;wm1240@muyingzhijia.com; ws632@muyingzhijia.com; sd211@muyingzhijia.com;porsia@muyingzhijia.com;yxd1279@muyingzhijia.com;wh971@muyingzhijia.com;lyq942@muyingzhijia.com; cfzmp@163.com".Split(new char[] { ',', ';' })), IsHtml = true });
-            esc.Close();
+                if (lstMail != null && lstMail.Count > 0)
+                {
+                    foreach (var item in lstMail)
+                    {
+                        if (!string.IsNullOrEmpty(item))
+                            mail.To.Add(new MailAddress(item));
+                    }
+                }
 
+                mail.Subject = subject;
+                mail.Body = body;
+                mail.SubjectEncoding = Encoding.UTF8;
+                mail.BodyEncoding = Encoding.UTF8;
+                mail.IsBodyHtml = true;
+                smtp.Send(mail);
 
+                return true;
+            }
+            catch (Exception ex)
+            {
+
+                return false;
+            }
         }
 
 
