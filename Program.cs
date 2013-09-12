@@ -20,47 +20,62 @@ namespace InstanceLastday16To9
     {
 
         public static  List<ob_v_visitreport> allProductName = getAllProductIDName();
-        public static int intent = 50;
+        public static int intent = 30;
+        public static int runHour = int.Parse(System.Configuration.ConfigurationSettings.AppSettings["beforeHour"].ToString());
 
         static void Main(string[] args)
-        {
-            //List<string> sendto1 = System.Configuration.ConfigurationSettings.AppSettings["sendto1"].ToString().Split(';').ToList();
-            //SendMail(sendto1, "前一天16:00 到今天9:00数据报表click.muyingzhijia.com",DateTime.Now.ToString());
-
-
-            //return;
+        {          
            List<UserVisitInfo> userList = new List<UserVisitInfo>();
            string writeFile = string.Format("{0}\\result{1}.txt", System.Threading.Thread.GetDomain().BaseDirectory, DateTime.Now.ToFileTimeUtc().ToString());
             //数据读取完毕退出
              Console.WriteLine("开始分析数据:");
 
-             for (int mi = -1; mi < 1; mi++)
+             DateTime dtNow=DateTime.Now;
+             int cur_hour = DateTime.Now.Hour;
+             for(int h=runHour;h<1;h++)
              {
-                 Int64 maxVisitID = 0;
-                 string dtStr = DateTime.Now.AddDays(mi).ToShortDateString();
+                 bool exitFlag = false;
+                 string dtStr =  dtNow.AddHours(h).ToShortDateString();
+                 int realHour = cur_hour + h;
 
-                 int exitFlag = 0;
+                 if (cur_hour + h < 0)
+                 {
+                     realHour = cur_hour + h+24;
+                 }           
+
+              
                  for (int run = 0; run < int.MaxValue; run++)
                  {
                      #region 循环读取数据
 
-                     if (exitFlag>5)
-                     {
-                         exitFlag = 0;
+                     if (exitFlag)
                          break;
-                     }
+                   
                      int filter_limit = intent * (run + 1);
                      int filter_offset = intent * run;
 
-                     string url = string.Format("http://10.0.0.131:920/index.php?module=API&filter_limit={0}&filter_offset={1}&method=Live.getLastVisitsDetails&format=json&idSite=1&period=day&date={2}&expanded=1&token_auth=453170c79e8f0ad5dcd1f0b2ce1ecf23", filter_limit,filter_offset,dtStr);
-
-                     if (maxVisitID > 0)
-                         url = url + "&maxIdVisit=" + maxVisitID;
+                     string url = string.Format("http://10.0.0.131:920/index.php?module=API&filter_sort_column=idvisit&filter_sort_order=desc&filter_limit={0}&filter_offset={1}&method=Live.getLastVisitsDetails&format=json&idSite=1&period=day&date={2}&segment=visitLocalHour=={3}&expanded=1&token_auth=453170c79e8f0ad5dcd1f0b2ce1ecf23", filter_limit, filter_offset, dtStr, realHour);
 
                      string xml = Boodoll.PageBL.ProductSearch.ProductSearchBLL.GetHtml(url, Encoding.GetEncoding("GB2312"));
+                     Newtonsoft.Json.JavaScriptArray jsonObject = new JavaScriptArray();
+                     if (xml == null || xml.Length < 10)
+                     {
+                         exitFlag = true;
+                         continue;
 
-                     Newtonsoft.Json.JavaScriptArray jsonObject = (Newtonsoft.Json.JavaScriptArray)Newtonsoft.Json.JavaScriptConvert.DeserializeObject(xml);
-
+                     }
+                     else
+                     {
+                         try
+                         {
+                             jsonObject = (Newtonsoft.Json.JavaScriptArray)Newtonsoft.Json.JavaScriptConvert.DeserializeObject(xml);
+                             Console.WriteLine(DateTime.Parse(dtStr).AddHours(realHour) + "," + run + "," + DateTime.Now);
+                         }
+                         catch (Exception ex)
+                         {
+                             continue;
+                         }
+                     }
                      int count = jsonObject.Count();
                      for (int i = 0; i < count; i++)
                      {
@@ -69,37 +84,12 @@ namespace InstanceLastday16To9
                              JavaScriptObject qcount = (JavaScriptObject)jsonObject[i];
                              JavaScriptArray actionDetails = (JavaScriptArray)qcount["actionDetails"];
 
-                             if (i == 0)
-                                 maxVisitID = Convert.ToInt64(qcount["idVisit"]);
-                             else
-                                 maxVisitID = Convert.ToInt64(qcount["idVisit"]) > maxVisitID ? maxVisitID : Convert.ToInt64(qcount["idVisit"]);
-
                              string lastActionDateTime = qcount["serverDate"].ToString() + " " + qcount["serverTimePretty"].ToString();
-                             if (mi == 0)
+
+                             if (DateTime.Parse(lastActionDateTime) < DateTime.Parse(dtStr).AddHours(realHour))
                              {
-                                 if (Convert.ToDateTime(lastActionDateTime) > DateTime.Parse(DateTime.Now.ToShortDateString()).AddHours(9))
-                                 {
-                                   //  exitFlag = true;
-                                     continue;
-
-                                 }
-                                 else if(Convert.ToDateTime(lastActionDateTime) < DateTime.Parse(DateTime.Now.ToShortDateString()))
-                                 {
-                                     exitFlag ++;
-                                     continue;
-                                 }
-                                       
-                             }
-
-                             if (mi == -1)
-                             {
-                                 if (Convert.ToDateTime(lastActionDateTime) < DateTime.Parse(DateTime.Now.AddDays(-1).ToShortDateString()).AddHours(16))
-                                 {
-                                     exitFlag++;
-                                     continue;
-
-                                 }
-
+                                 exitFlag = true;
+                                 continue;
                              }
                              string referrerUrl = "";
 
@@ -109,12 +99,10 @@ namespace InstanceLastday16To9
 
                              if (qcount["referrerType"] != null)
                                  referrerType = qcount["referrerType"].ToString();
-
+                       
                              string message = "";
                              if (actionDetails.Count > 0)
                              {
-
-
                                  string userid = "";
                                  string guid = "";
                                  JavaScriptObject customVariables = null;
@@ -132,7 +120,6 @@ namespace InstanceLastday16To9
 
                                  if (!string.IsNullOrEmpty(message))
                                  {
-
                                      actionDetails.ForEach(item =>
                                      {
                                          JavaScriptObject itemobject = (JavaScriptObject)item;
@@ -158,7 +145,7 @@ namespace InstanceLastday16To9
                                                          vinfo.Spent = Converter.ParseString(itemobject["timeSpent"], "");
 
                                                      userList.Add(vinfo);
-                                                     Console.WriteLine(vinfo.Userid + "," + vinfo.Guid + "," + vinfo.Url + "," + vinfo.ReferrerUrl + "," + vinfo.LastVisitTime);
+                                                     //Console.WriteLine(vinfo.Userid + "," + vinfo.Guid + "," + vinfo.Url + "," + vinfo.ReferrerUrl + "," + vinfo.LastVisitTime);
                                                  }
                                              }
                                          }
@@ -170,13 +157,12 @@ namespace InstanceLastday16To9
 
 
                              }
-
-
                          }
                          catch (Exception ex)
                          {
-                             continue;
                              Console.WriteLine(ex.Message);
+                             continue;
+                          
                          }
 
                      }
