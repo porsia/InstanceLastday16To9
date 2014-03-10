@@ -9,6 +9,7 @@ using System.Net;
 using System.Net.Mail;
 using System.Threading;
 using System.Configuration;
+using System.Xml;
 using Boodoll.PageBL;
 using Newtonsoft.Json;
 using Boodoll.PageBL.ProductSearch;
@@ -18,7 +19,8 @@ namespace InstanceLastday16To9
          internal class Program
 {
     // Fields
-    public static List<ob_v_visitreport> allProductName = getAllProductIDName();
+             public static List<ob_v_visitreport> allProductName = Xml();
+        //getAllProductIDName();
     public static string apiurl = ConfigurationSettings.AppSettings["apiurl"].ToString();
     public static int fromHour = int.Parse(ConfigurationSettings.AppSettings["fromHour"].ToString());
     public static int intent = int.Parse(ConfigurationSettings.AppSettings["intent"].ToString());
@@ -46,6 +48,38 @@ namespace InstanceLastday16To9
         return (bd + "</body></html>");
     }
 
+    public static List<ob_v_visitreport> Xml()
+    {
+        List<ob_v_visitreport> list = new List<ob_v_visitreport>();
+        //创建XmlDocument对象
+        XmlDocument xmlDoc = new XmlDocument();
+        string filen = System.Environment.CurrentDirectory+("/Product.xml");
+        //载入xml文件名
+        xmlDoc.Load(filen);
+        //读取根节点的所有子节点，放到xn0中 
+        XmlNodeList xn0 = xmlDoc.SelectSingleNode("DirectoryListing").ChildNodes;
+        //查找二级节点的内容或属性 
+        foreach (XmlElement oon in xn0)
+        {
+            ob_v_visitreport ser = new ob_v_visitreport();
+            ser.category = oon.GetElementsByTagName("category")[0].InnerText;
+            ser.productid = Convert.ToInt32(oon.GetElementsByTagName("productid")[0].InnerText);
+            ser.productName = oon.GetElementsByTagName("productname")[0].InnerText;
+            
+            list.Add(ser);
+        }
+        return list;
+    }
+   [Serializable]
+  public  class Serveris
+    {
+      public Serveris() { }
+      public string Category { get; set; }
+      public int Productid { get; set; }
+      public string Productname { get; set; }
+ 
+    }
+ 
     public static string CreatePID(string url)
     {
         url = url.ToLower();
@@ -232,6 +266,7 @@ namespace InstanceLastday16To9
 
     private static void Main(string[] args)
     {
+        Xml();
         List<UserVisitInfo> userList = new List<UserVisitInfo>();
         string writeFile = string.Format(@"{0}\result{1}.txt", Thread.GetDomain().BaseDirectory, DateTime.Now.ToFileTimeUtc().ToString());
         Console.WriteLine("开始分析数据:");
