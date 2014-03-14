@@ -19,7 +19,7 @@ namespace InstanceLastday16To9
          internal class Program
 {
     // Fields
-             public static List<ob_v_visitreport> allProductName = Xml();
+             public static List<ob_v_visitreport> allProductName = getAllProductIDName();
         //getAllProductIDName();
     public static string apiurl = ConfigurationSettings.AppSettings["apiurl"].ToString();
     public static int fromHour = int.Parse(ConfigurationSettings.AppSettings["fromHour"].ToString());
